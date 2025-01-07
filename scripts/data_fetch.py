@@ -2,47 +2,48 @@ import httpx
 import asyncio
 import os
 
-ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query'
-API_KEY = os.getenv('API_KEY')
+class AlphaVantageAPI:
+    BASE_URL = "https://www.alphavantage.co/query?"
+    API_KEY = os.getenv("API_KEY")
 
-if not API_KEY:
-    raise ValueError("Please set the ALPHA_VANTAGE_API_KEY environment variable")
+    if not API_KEY:
+        raise ValueError("Please set the ALPHA_VANTAGE_API_KEY environment variable")
 
+    @staticmethod
+    async def fetch(endpoint: str, symbol:str, **params):
+        params.update({
+            "function": endpoint,
+            "apikey": AlphaVantageAPI.API_KEY,
+            "symbol": symbol,
+            "datatype": "json"
+        })
 
-async def fetch_data(function: str, **params):
-    """
-    Fetch data from the Alpha Vantage API.
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(AlphaVantageAPI.BASE_URL, params=params)
+                response.raise_for_status()
+                data = response.json()
 
-    :param function: The Alpha Vantage function to call (e.g., "TIME_SERIES_DAILY").
-    :param params: Additional parameters for the API call.
-    :return: JSON response from the API.
-    """
-    params.update({
-        "function": function,
-        "apikey": API_KEY,
-        "datatype": "json"
-    })
+                if "Error Message" in data:
+                    raise ValueError(f"API Error: {data['Error Message']}")
 
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(ALPHA_VANTAGE_BASE_URL, params=params)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            data = response.json()
+                return data
 
-            if "Error Message" in data:
-                raise ValueError(f"API Error: {data['Error Message']}")
+            except httpx.HTTPStatusError as e:
+                raise RuntimeError(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+            except httpx.RequestError as e:
+                raise RuntimeError(f"An error occurred while requesting data: {e}")
+            except ValueError as e:
+                raise RuntimeError(f"API returned an error: {e}")
 
-            return data
+    @staticmethod
+    async def fetch_time_series_daily(symbol: str):
+        return await AlphaVantageAPI.fetch("TIME_SERIES_DAILY", symbol=symbol)
 
-        except httpx.HTTPStatusError as e:
-            raise RuntimeError(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
-        except httpx.RequestError as e:
-            raise RuntimeError(f"An error occurred while requesting data: {e}")
-        except ValueError as e:
-            raise RuntimeError(f"API returned an error: {e}")
+    @staticmethod
+    async def fetch_intraday(symbol: str, interval: str):
+        return await AlphaVantageAPI.fetch("TIME_SERIES_INTRADAY", symbol=symbol, interval=interval)
 
-# async def test():
-#     data = await fetch_data("TIME_SERIES_DAILY", symbol="AAPL")
-#     print(data)
-#
-# asyncio.run(test())
+    @staticmethod
+    async def fetch_company_overview(symbol: str):
+        return await AlphaVantageAPI.fetch("OVERVIEW", symbol=symbol)
