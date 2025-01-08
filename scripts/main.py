@@ -1,6 +1,9 @@
 import asyncio
 from scripts.data_fetch import AlphaVantageAPI
 from scripts.data_parse import DataParser
+from scripts.data_load import DuckDb
+import duckdb
+import os
 
 async def main():
     symbol = "AAPL"  # Replace with your desired stock symbol
@@ -10,6 +13,11 @@ async def main():
         df_daily = DataParser.parse_time_series(raw_data_daily)
         print("Daily Time Series Data:")
         print(df_daily)
+        DuckDb.setup_duckdb()
+        DuckDb.load_time_series(df_daily)
+
+        DuckDb.query_time_series()
+
 
         # # Fetch and parse intraday time series data
         # interval = "5min"
