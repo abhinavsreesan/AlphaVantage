@@ -10,11 +10,12 @@ class AlphaVantageAPI:
         raise ValueError("Please set the ALPHA_VANTAGE_API_KEY environment variable")
 
     @staticmethod
-    async def fetch(endpoint: str, symbol:str, **params):
+    async def fetch(endpoint: str, symbol:str, outputsize='compact',**params):
         params.update({
             "function": endpoint,
             "apikey": AlphaVantageAPI.API_KEY,
             "symbol": symbol,
+            "outputsize": outputsize,
             "datatype": "json"
         })
 
@@ -37,8 +38,8 @@ class AlphaVantageAPI:
                 raise RuntimeError(f"API returned an error: {e}")
 
     @staticmethod
-    async def fetch_time_series_daily(symbol: str):
-        return await AlphaVantageAPI.fetch("TIME_SERIES_DAILY", symbol=symbol)
+    async def fetch_time_series_daily(symbol: str, outputsize='compact'):
+        return await AlphaVantageAPI.fetch("TIME_SERIES_DAILY", outputsize=outputsize, symbol=symbol)
 
     @staticmethod
     async def fetch_intraday(symbol: str, interval: str):
